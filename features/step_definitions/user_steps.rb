@@ -46,6 +46,8 @@ end
 Given /^I am logged in as "([^"]*)" with password "([^"]*)"(?:( with preferences set to hidden warnings and additional tags))?$/ do |login, password, hidden|
   step("I am logged out")
   user = find_or_create_new_user(login, password)
+  require 'authlogic/test_case'
+  activate_authlogic
   if hidden.present?
     user.preference.hide_warnings = true
     user.preference.hide_freeform = true
@@ -56,7 +58,6 @@ Given /^I am logged in as "([^"]*)" with password "([^"]*)"(?:( with preferences
   fill_in "Password", with: password
   check "Remember Me"
   click_button "Log In"
-  assert UserSession.find unless @javascript
 end
 
 Given /^I am logged in as "([^"]*)"$/ do |login|
@@ -84,6 +85,8 @@ Given /^user "([^"]*)" is banned$/ do |login|
 end
 
 Given /^I am logged out$/ do
+  require 'authlogic/test_case'
+  activate_authlogic
   visit logout_path unless UserSession.find.nil?
   assert UserSession.find.nil? unless @javascript
   visit destroy_admin_session_path
