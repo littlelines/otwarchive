@@ -211,7 +211,7 @@ class Admin::AdminUsersController < ApplicationController
     else
       letter = "0"
     end
-    @all_users = User.alphabetical.starting_with(letter)
+    @all_users = User.alphabetical.starting_with(letter).load
     @roles = Role.assignable.uniq
   end
 

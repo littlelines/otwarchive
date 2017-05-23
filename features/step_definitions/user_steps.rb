@@ -1,6 +1,7 @@
 DEFAULT_USER = "testuser"
 DEFAULT_PASSWORD = "password"
 NEW_USER = "newuser"
+@logged_in = false
 
 # GIVEN
 
@@ -44,7 +45,7 @@ Given /^the user "([^"]*)" exists and has the role "([^"]*)"/ do |login, role|
 end
 
 Given /^I am logged in as "([^"]*)" with password "([^"]*)"(?:( with preferences set to hidden warnings and additional tags))?$/ do |login, password, hidden|
-  step("I am logged out")
+  step("I am logged out") 
   user = find_or_create_new_user(login, password)
   require 'authlogic/test_case'
   activate_authlogic
@@ -58,6 +59,7 @@ Given /^I am logged in as "([^"]*)" with password "([^"]*)"(?:( with preferences
   fill_in "Password", with: password
   check "Remember Me"
   click_button "Log In"
+  @logged_in = true
 end
 
 Given /^I am logged in as "([^"]*)"$/ do |login|
@@ -85,15 +87,12 @@ Given /^user "([^"]*)" is banned$/ do |login|
 end
 
 Given /^I am logged out$/ do
-  require 'authlogic/test_case'
-  activate_authlogic
-  visit logout_path unless UserSession.find.nil?
-  assert UserSession.find.nil? unless @javascript
-  visit destroy_admin_session_path
+  step(%{I log out})
 end
 
 Given /^I log out$/ do
-  step(%{I follow "Log Out"}) unless UserSession.find.nil?
+  step(%{I follow "Log Out"}) if @logged_in
+  @logged_in = false
 end
 
 Given /^"([^"]*)" has the pseud "([^"]*)"$/ do |username, pseud|
@@ -212,6 +211,7 @@ end
 
 Then /^I should be logged out$/ do
   assert UserSession.find.nil? unless @javascript
+  assert @logged_in == false
 end
 
 def get_work_name(age, classname, name)

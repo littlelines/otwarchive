@@ -42,7 +42,7 @@ end
 Given /^I am logged in as an admin$/ do
   require 'authlogic/test_case'
   activate_authlogic 
-  step("I am logged out") unless UserSession.find.nil?
+  step("I am logged out")
   admin = Admin.find_by(login: "testadmin")
   if admin.blank?
     admin = FactoryGirl.create(:admin, login: "testadmin", password: "testadmin", email: "testadmin@example.org")
