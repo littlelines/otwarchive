@@ -92,6 +92,7 @@ end
 
 Given /^I log out$/ do
   step(%{I follow "Log Out"}) if @logged_in
+  visit destroy_admin_session_path 
   @logged_in = false
 end
 
