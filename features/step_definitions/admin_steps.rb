@@ -1,3 +1,4 @@
+
 default_settings = {
   invite_from_queue_enabled: ArchiveConfig.INVITE_FROM_QUEUE_ENABLED,
   invite_from_queue_number: ArchiveConfig.INVITE_FROM_QUEUE_NUMBER,
@@ -39,7 +40,9 @@ Given /the following admins? exists?/ do |table|
 end
 
 Given /^I am logged in as an admin$/ do
-  step("I am logged out")
+  require 'authlogic/test_case'
+  activate_authlogic 
+  step("I am logged out") unless UserSession.find.nil?
   admin = Admin.find_by(login: "testadmin")
   if admin.blank?
     admin = FactoryGirl.create(:admin, login: "testadmin", password: "testadmin", email: "testadmin@example.org")

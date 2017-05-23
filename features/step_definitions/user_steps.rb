@@ -84,13 +84,13 @@ Given /^user "([^"]*)" is banned$/ do |login|
 end
 
 Given /^I am logged out$/ do
-  visit logout_path
+  visit logout_path unless UserSession.find.nil?
   assert UserSession.find.nil? unless @javascript
   visit destroy_admin_session_path
 end
 
 Given /^I log out$/ do
-  step(%{I follow "Log Out"})
+  step(%{I follow "Log Out"}) unless UserSession.find.nil?
 end
 
 Given /^"([^"]*)" has the pseud "([^"]*)"$/ do |username, pseud|
