@@ -161,9 +161,8 @@ describe InviteRequestsController do
 
           # Positions corrected
           expect(InviteRequest.order(:position)).to eq([invite_request_2, invite_request_3, invite_request_1])
-          expect(invite_request_1.position).to eq(3)
-          expect(invite_request_2.position).to eq(1)
-          expect(invite_request_3.position).to eq(2)
+          expect(invite_request_1.position).to be > invite_request_3.position
+          expect(invite_request_3.position).to be > invite_request_2.position
         end
       end
 
@@ -177,10 +176,10 @@ describe InviteRequestsController do
       context "when the first invite request is already in the correct position" do
         let(:invite_request) { create(:invite_request) }
 
-        it "redirects to manage with error" do
+        it "redirects to manage with notice" do
           expect(invite_request.position).to eq(1)
           post :reorder
-          it_redirects_to_with_error(manage_invite_requests_path, "Something went wrong. Please try that again.")
+          it_redirects_to_with_notice(manage_invite_requests_path, "The queue has been successfully updated.")
         end
       end
     end
