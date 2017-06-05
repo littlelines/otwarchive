@@ -98,7 +98,7 @@ gem 'google_visualr', '>= 2.1'
 # gem 'copycopter_client', '~> 2.0.1'
 
 # Globalize for translations
-gem 'globalize', '~> 4.0.3'
+gem 'globalize', '~> 5.0.0'
 
 # Add a clean notifier that shows we are on dev or test
 gem 'rack-dev-mark', '>=0.7.5'
