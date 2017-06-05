@@ -5,7 +5,7 @@ gem 'test-unit', '~> 3.0'
 
 gem 'bundler'
 
-gem 'rails', '4.1.16'
+gem 'rails', '4.2'
 
 gem 'rails-observers'
 gem 'actionpack-page_caching'
