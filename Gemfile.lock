@@ -55,13 +55,13 @@ GEM
       activesupport (>= 3.2)
       request_store (~> 1.0)
       scrypt (>= 1.2, < 3.0)
-    aws-sdk (2.9.29)
-      aws-sdk-resources (= 2.9.29)
-    aws-sdk-core (2.9.29)
+    aws-sdk (2.9.31)
+      aws-sdk-resources (= 2.9.31)
+    aws-sdk-core (2.9.31)
       aws-sigv4 (~> 1.0)
       jmespath (~> 1.0)
-    aws-sdk-resources (2.9.29)
-      aws-sdk-core (= 2.9.29)
+    aws-sdk-resources (2.9.31)
+      aws-sdk-core (= 2.9.31)
     aws-sigv4 (1.0.0)
     bcrypt (3.1.11)
     builder (3.2.3)
@@ -558,4 +558,4 @@ RUBY VERSION
    ruby 2.2.5p319
 
 BUNDLED WITH
-   1.14.6
+   1.14.3
