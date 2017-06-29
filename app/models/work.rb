@@ -10,65 +10,48 @@ class Work < ActiveRecord::Base
   include WorkChapterCountCaching
   include Tire::Model::Search
   include ActiveModel::ForbiddenAttributesProtection
-  # include Tire::Model::Callbacks
+
+  acts_as_commentable
 
   ########################################################################
   # ASSOCIATIONS
   ########################################################################
+  accepts_nested_attributes_for :challenge_claims
 
   # creatorships can't have dependent => destroy because we email the
   # user in a before_destroy callback
-  has_many :creatorships, as: :creation
-  has_many :pseuds, through: :creatorships, after_remove: :expire_pseud
-  has_many :users, -> { uniq }, through: :pseuds
-
-  has_many :external_creatorships, as: :creation, dependent: :destroy, inverse_of: :creation
-  has_many :archivists, through: :external_creatorships
-  has_many :external_author_names, through: :external_creatorships, inverse_of: :works
-  has_many :external_authors, -> { uniq }, through: :external_author_names
-
   # we do NOT use dependent => destroy here because we want to destroy chapters in REVERSE order
-  has_many :chapters
-  validates_associated :chapters
-
-  has_many :serial_works, dependent: :destroy
-  has_many :series, through: :serial_works
-
-  has_many :related_works, as: :parent
-  has_many :approved_related_works, -> { where(reciprocal: 1) }, as: :parent, class_name: "RelatedWork"
-  has_many :parent_work_relationships, class_name: "RelatedWork", dependent: :destroy
-  has_many :children, through: :related_works, source: :work
-  has_many :approved_children, through: :approved_related_works, source: :work
-
-  has_many :gifts, dependent: :destroy
   accepts_nested_attributes_for :gifts, allow_destroy: true
-
-  has_many :subscriptions, as: :subscribable, dependent: :destroy
-
-  has_many :challenge_assignments, as: :creation
-  has_many :challenge_claims, as: :creation
-  accepts_nested_attributes_for :challenge_claims
-
-  acts_as_commentable
-  has_many :total_comments, class_name: 'Comment', through: :chapters
-  has_many :kudos, as: :commentable, dependent: :destroy
 
   belongs_to :language
   belongs_to :work_skin
-  validate :work_skin_allowed, on: :save
-  def work_skin_allowed
-    unless self.users.include?(self.work_skin.author) || (self.work_skin.public? && self.work_skin.official?)
-      errors.add(:base, ts("You do not have permission to use that custom work stylesheet."))
-    end
-  end
-  # statistics
+
+  has_many :approved_children, through: :approved_related_works, source: :work
+  has_many :approved_related_works, -> { where(reciprocal: 1) }, as: :parent, class_name: "RelatedWork"
+  has_many :archivists, through: :external_creatorships
+  has_many :challenge_assignments, as: :creation
+  has_many :challenge_claims, as: :creation
+  has_many :chapters
+  has_many :children, through: :related_works, source: :work
+  has_many :creatorships, as: :creation
+  has_many :external_author_names, through: :external_creatorships, inverse_of: :works
+  has_many :external_authors, -> { uniq }, through: :external_author_names
+  has_many :external_creatorships, as: :creation, dependent: :destroy, inverse_of: :creation
+  has_many :gifts, dependent: :destroy
+  has_many :kudos, as: :commentable, dependent: :destroy
+  has_many :parent_work_relationships, class_name: "RelatedWork", dependent: :destroy
+  has_many :pseuds, through: :creatorships, after_remove: :expire_pseud
+  has_many :related_works, as: :parent
+  has_many :serial_works, dependent: :destroy
+  has_many :series, through: :serial_works
+  has_many :subscriptions, as: :subscribable, dependent: :destroy
+  has_many :total_comments, class_name: 'Comment', through: :chapters
+  has_many :users, -> { uniq }, through: :pseuds
   has_many :work_links, dependent: :destroy
   has_one :stat_counter, dependent: :destroy
-  after_create :create_stat_counter
-  def create_stat_counter
-    counter = self.build_stat_counter
-    counter.save
-  end
+
+  # statistics
+  # after_create :create_stat_counter
 
 
   ########################################################################
@@ -93,7 +76,10 @@ class Work < ActiveRecord::Base
   ########################################################################
   # VALIDATION
   ########################################################################
+  validate :work_skin_allowed, on: :save
+  validates_associated :chapters
   validates_presence_of :title
+  validate :clean_and_validate_title
   validates_length_of :title,
     minimum: ArchiveConfig.TITLE_MIN,
     too_short: ts("must be at least %{min} characters long.", min: ArchiveConfig.TITLE_MIN)
@@ -139,9 +125,6 @@ class Work < ActiveRecord::Base
     end
   end
 
-  # Makes sure the title has no leading spaces
-  validate :clean_and_validate_title
-
   def clean_and_validate_title
     unless self.title.blank?
       self.title = self.title.strip
@@ -164,7 +147,7 @@ class Work < ActiveRecord::Base
   end
 
   # rephrases the "chapters is invalid" message
-  after_validation :check_for_invalid_chapters
+  # after_validation :check_for_invalid_chapters
   def check_for_invalid_chapters
     if self.errors[:chapters].any?
       self.errors.add(:base, ts("Please enter your story in the text field below."))
@@ -177,25 +160,35 @@ class Work < ActiveRecord::Base
   # These are methods that run before/after saves and updates to ensure
   # consistency and that associated variables are updated.
   ########################################################################
-
-  before_save :validate_authors, :clean_and_validate_title, :validate_published_at, :ensure_revised_at
-
   after_initialize :post_first_chapter
-  before_save :set_word_count
-
-  after_save :save_chapters, :save_parents, :save_new_recipients
-
-  before_create :set_anon_unrevealed, :set_author_sorting
-  after_create :notify_after_creation
-  before_update :set_author_sorting
 
   before_save :check_for_invalid_tags
+  before_save :clean_and_validate_title
+  before_save :ensure_revised_at
+  before_save :set_word_count
+  before_save :validate_authors
+  before_save :validate_published_at
+
+  before_update :bust_anon_caching
+  before_update :set_author_sorting
   before_update :validate_tags, :notify_before_update
+
+  before_create :set_anon_unrevealed, :set_author_sorting
+
   after_update :adjust_series_restriction
 
+  after_create :notify_after_creation
+
   after_save :notify_recipients, :expire_caches
-  after_destroy :expire_caches
+  after_save :save_chapters, :save_parents, :save_new_recipients
+
   before_destroy :before_destroy
+
+  after_destroy :clean_up_assignments
+  after_destroy :clean_up_creatorships
+  after_destroy :clean_up_filter_taggings
+  after_destroy :destroy_chapters_in_reverse
+  after_destroy :expire_caches
 
   def before_destroy
     if self.posted?
@@ -301,22 +294,18 @@ class Work < ActiveRecord::Base
     Collection.expire_ids(collection_ids)
   end
 
-  after_destroy :destroy_chapters_in_reverse
   def destroy_chapters_in_reverse
     self.chapters.order("position DESC").map(&:destroy)
   end
 
-  after_destroy :clean_up_creatorships
   def clean_up_creatorships
     self.creatorships.each{ |c| c.destroy }
   end
 
-  after_destroy :clean_up_filter_taggings
   def clean_up_filter_taggings
     FilterTagging.destroy_all("filterable_type = 'Work' AND filterable_id = #{self.id}")
   end
 
-  after_destroy :clean_up_assignments
   def clean_up_assignments
     self.challenge_assignments.each {|a| a.creation = nil; a.save!}
   end
@@ -571,7 +560,6 @@ class Work < ActiveRecord::Base
     in_anon_collection?
   end
 
-  before_update :bust_anon_caching
   def bust_anon_caching
     if in_anon_collection_changed?
       async(:poke_cached_creator_comments)
@@ -787,7 +775,7 @@ class Work < ActiveRecord::Base
     self.number_of_chapters > 1
   end
 
-  after_save :update_complete_status
+  # after_save :update_complete_status
   def update_complete_status
     # self.chapters.posted.count ( not self.number_of_posted_chapter , here be dragons )
     self.complete = self.chapters.posted.count == expected_number_of_chapters
@@ -825,7 +813,7 @@ class Work < ActiveRecord::Base
     end
   end
 
-  after_update :remove_outdated_downloads
+  # after_update :remove_outdated_downloads
   def remove_outdated_downloads
     FileUtils.rm_rf(self.download_dir)
   end
@@ -900,8 +888,8 @@ class Work < ActiveRecord::Base
   end
 
   # FILTERING CALLBACKS
-  after_validation :check_filter_counts
-  after_save :adjust_filter_counts
+  # after_validation :check_filter_counts
+  # after_save :adjust_filter_counts
 
   # Creates a filter_tagging relationship between the work and the tag or its canonical synonym
   def add_filter_tagging(tag, meta=false)
@@ -1501,5 +1489,16 @@ class Work < ActiveRecord::Base
   def nonfiction
     nonfiction_tags = [125773, 66586, 123921] # Essays, Nonfiction, Reviews
     (filter_ids & nonfiction_tags).present?
+  end
+
+  def work_skin_allowed
+    unless self.users.include?(self.work_skin.author) || (self.work_skin.public? && self.work_skin.official?)
+      errors.add(:base, ts("You do not have permission to use that custom work stylesheet."))
+    end
+  end
+
+  def create_stat_counter
+    counter = self.build_stat_counter
+    counter.save
   end
 end
