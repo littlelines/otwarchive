@@ -6,54 +6,59 @@ class Chapter < ActiveRecord::Base
   include WorkChapterCountCaching
   include Creatable
 
-  has_many :creatorships, as: :creation
-  has_many :pseuds, through: :creatorships
+  # == VIRTUAL ATTRIBUTES ==
 
-  belongs_to :work
-  # acts_as_list scope: 'work_id = #{work_id}'
-
-  acts_as_commentable
-  has_many :kudos, as: :commentable
-
-  validates_length_of :title, allow_blank: true, maximum: ArchiveConfig.TITLE_MAX,
-    too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.TITLE_MAX)
-
-  validates_length_of :summary, allow_blank: true, maximum: ArchiveConfig.SUMMARY_MAX,
-    too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.SUMMARY_MAX)
-  validates_length_of :notes, allow_blank: true, maximum: ArchiveConfig.NOTES_MAX,
-    too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.NOTES_MAX)
-  validates_length_of :endnotes, allow_blank: true, maximum: ArchiveConfig.NOTES_MAX,
-    too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.NOTES_MAX)
-
-
-  validates_presence_of :content
-  validates_length_of :content, minimum: ArchiveConfig.CONTENT_MIN,
-    too_short: ts("must be at least %{min} characters long.", min: ArchiveConfig.CONTENT_MIN)
-
-  validates_length_of :content, maximum: ArchiveConfig.CONTENT_MAX,
-    too_long: ts("cannot be more than %{max} characters long.", max: ArchiveConfig.CONTENT_MAX)
-
-  # Virtual attribute to use as a placeholder for pseuds before the chapter has been saved
-  # Can't write to chapter.pseuds until the chapter has an id
   attr_accessor :authors
   attr_accessor :authors_to_remove
   attr_accessor :invalid_pseuds
   attr_accessor :ambiguous_pseuds
   attr_accessor :wip_length_placeholder
 
-  before_save :validate_authors, :strip_title #, :clean_emdashes
-  before_save :set_word_count
-  before_save :validate_published_at
+  # == ASSOCIATIONS ==
 
-#  before_update :clean_emdashes
+  belongs_to :work
+
+  has_many :creatorships, as: :creation
+  has_many :kudos, as: :commentable
+  has_many :pseuds, through: :creatorships
+
+  # == VALIDATIONS ==
+
+  validates_length_of :content, maximum: ArchiveConfig.CONTENT_MAX, too_long: ts("cannot be more than %{max} characters long.", max: ArchiveConfig.CONTENT_MAX)
+  validates_length_of :content, minimum: ArchiveConfig.CONTENT_MIN, too_short: ts("must be at least %{min} characters long.", min: ArchiveConfig.CONTENT_MIN)
+  validates_length_of :endnotes, allow_blank: true, maximum: ArchiveConfig.NOTES_MAX, too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.NOTES_MAX)
+  validates_length_of :notes, allow_blank: true, maximum: ArchiveConfig.NOTES_MAX, too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.NOTES_MAX)
+  validates_length_of :summary, allow_blank: true, maximum: ArchiveConfig.SUMMARY_MAX, too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.SUMMARY_MAX)
+  validates_length_of :title, allow_blank: true, maximum: ArchiveConfig.TITLE_MAX, too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.TITLE_MAX)
+  validates_presence_of :content
+
+  # == CALLBACKS ==
+
+  after_save :invalidate_chapter_count, if: Proc.new { |chapter| chapter.posted_changed? }
 
   after_create :notify_after_creation
+
+  before_save :set_word_count
+  before_save :validate_authors, :strip_title #, :clean_emdashes
+  before_save :validate_published_at
+
   before_update :notify_before_update
+
+  after_save :fix_positions
+
+  before_destroy :fix_positions_after_destroy, :invalidate_chapter_count
+
+  # == SCOPES ==
 
   scope :in_order, -> { order(:position) }
   scope :posted, -> { where(posted: true) }
 
-  after_save :fix_positions
+  # == OTHER MACROS ==
+
+  acts_as_commentable
+
+  # == INSTANCE METHODS ==
+
   def fix_positions
     if work
       positions_changed = false
@@ -78,9 +83,6 @@ class Chapter < ActiveRecord::Base
     end
   end
 
-  after_save :invalidate_chapter_count,
-    if: Proc.new { |chapter| chapter.posted_changed? }
-  before_destroy :fix_positions_after_destroy, :invalidate_chapter_count
   def fix_positions_after_destroy
     if work && position
       chapters = work.chapters.where(["position > ?", position])
@@ -207,5 +209,4 @@ class Chapter < ActiveRecord::Base
    #
    # def add_to_list_bottom
    # end
-
 end
