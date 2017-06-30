@@ -11,7 +11,19 @@ class Work < ActiveRecord::Base
   include Tire::Model::Search
   include ActiveModel::ForbiddenAttributesProtection
 
-  acts_as_commentable
+  ########################################################################
+  # VIRTUAL ATTRIBUTES
+  ########################################################################
+
+  # Virtual attribute to use as a placeholder for pseuds before the work has been saved
+  # Can't write to work.pseuds until the work has an id
+  attr_accessor :authors
+  attr_accessor :authors_to_remove
+  attr_accessor :invalid_pseuds
+  attr_accessor :ambiguous_pseuds
+  attr_accessor :new_parent, :url_for_parent
+  attr_accessor :should_reset_filters
+  attr_accessor :new_recipients
 
   ########################################################################
   # ASSOCIATIONS
@@ -48,30 +60,12 @@ class Work < ActiveRecord::Base
   has_many :total_comments, class_name: 'Comment', through: :chapters
   has_many :users, -> { uniq }, through: :pseuds
   has_many :work_links, dependent: :destroy
+
   has_one :stat_counter, dependent: :destroy
 
   # statistics
-  # after_create :create_stat_counter
 
 
-  ########################################################################
-  # VIRTUAL ATTRIBUTES
-  ########################################################################
-
-  # Virtual attribute to use as a placeholder for pseuds before the work has been saved
-  # Can't write to work.pseuds until the work has an id
-  attr_accessor :authors
-  attr_accessor :authors_to_remove
-  attr_accessor :invalid_pseuds
-  attr_accessor :ambiguous_pseuds
-  attr_accessor :new_parent, :url_for_parent
-  attr_accessor :should_reset_filters
-  attr_accessor :new_recipients
-
-  # return title.html_safe to overcome escaping done by sanitiser
-  def title
-    read_attribute(:title).try(:html_safe)
-  end
 
   ########################################################################
   # VALIDATION
@@ -102,6 +96,51 @@ class Work < ActiveRecord::Base
     allow_blank: true,
     maximum: ArchiveConfig.NOTES_MAX,
     too_long: ts("must be less than %{max} characters long.", max: ArchiveConfig.NOTES_MAX)
+
+  # == CALLBACKS ==
+
+  after_initialize :post_first_chapter
+
+  after_validation :check_filter_counts
+  after_validation :check_for_invalid_chapters
+
+  before_save :check_for_invalid_tags
+  before_save :clean_and_validate_title
+  before_save :ensure_revised_at
+  before_save :set_word_count
+  before_save :validate_authors
+  before_save :validate_published_at
+
+  before_update :bust_anon_caching
+  before_update :set_author_sorting
+  before_update :validate_tags, :notify_before_update
+
+
+  before_create :set_anon_unrevealed, :set_author_sorting
+
+  after_update :adjust_series_restriction
+  after_update :remove_outdated_downloads
+
+  after_save :adjust_filter_counts
+  after_save :notify_recipients, :expire_caches
+  after_save :save_chapters, :save_parents, :save_new_recipients
+  after_save :update_complete_status
+
+  after_create :create_stat_counter
+  after_create :notify_after_creation
+
+  before_destroy :before_destroy
+
+  after_destroy :clean_up_assignments
+  after_destroy :clean_up_creatorships
+  after_destroy :clean_up_filter_taggings
+  after_destroy :destroy_chapters_in_reverse
+  after_destroy :expire_caches
+
+
+  # == OTHER MACROS ==
+
+  acts_as_commentable
 
   # Checks that work has at least one author
   def validate_authors
@@ -147,7 +186,6 @@ class Work < ActiveRecord::Base
   end
 
   # rephrases the "chapters is invalid" message
-  # after_validation :check_for_invalid_chapters
   def check_for_invalid_chapters
     if self.errors[:chapters].any?
       self.errors.add(:base, ts("Please enter your story in the text field below."))
@@ -155,40 +193,6 @@ class Work < ActiveRecord::Base
     end
   end
 
-  ########################################################################
-  # HOOKS
-  # These are methods that run before/after saves and updates to ensure
-  # consistency and that associated variables are updated.
-  ########################################################################
-  after_initialize :post_first_chapter
-
-  before_save :check_for_invalid_tags
-  before_save :clean_and_validate_title
-  before_save :ensure_revised_at
-  before_save :set_word_count
-  before_save :validate_authors
-  before_save :validate_published_at
-
-  before_update :bust_anon_caching
-  before_update :set_author_sorting
-  before_update :validate_tags, :notify_before_update
-
-  before_create :set_anon_unrevealed, :set_author_sorting
-
-  after_update :adjust_series_restriction
-
-  after_create :notify_after_creation
-
-  after_save :notify_recipients, :expire_caches
-  after_save :save_chapters, :save_parents, :save_new_recipients
-
-  before_destroy :before_destroy
-
-  after_destroy :clean_up_assignments
-  after_destroy :clean_up_creatorships
-  after_destroy :clean_up_filter_taggings
-  after_destroy :destroy_chapters_in_reverse
-  after_destroy :expire_caches
 
   def before_destroy
     if self.posted?
@@ -775,7 +779,6 @@ class Work < ActiveRecord::Base
     self.number_of_chapters > 1
   end
 
-  # after_save :update_complete_status
   def update_complete_status
     # self.chapters.posted.count ( not self.number_of_posted_chapter , here be dragons )
     self.complete = self.chapters.posted.count == expected_number_of_chapters
@@ -813,7 +816,6 @@ class Work < ActiveRecord::Base
     end
   end
 
-  # after_update :remove_outdated_downloads
   def remove_outdated_downloads
     FileUtils.rm_rf(self.download_dir)
   end
@@ -886,10 +888,6 @@ class Work < ActiveRecord::Base
     return false if self.rating_string.blank?
     return true
   end
-
-  # FILTERING CALLBACKS
-  # after_validation :check_filter_counts
-  # after_save :adjust_filter_counts
 
   # Creates a filter_tagging relationship between the work and the tag or its canonical synonym
   def add_filter_tagging(tag, meta=false)
@@ -1501,4 +1499,10 @@ class Work < ActiveRecord::Base
     counter = self.build_stat_counter
     counter.save
   end
+
+  # return title.html_safe to overcome escaping done by sanitiser
+  def title
+    read_attribute(:title).try(:html_safe)
+  end
+
 end
