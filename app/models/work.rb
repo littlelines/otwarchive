@@ -28,13 +28,6 @@ class Work < ActiveRecord::Base
   ########################################################################
   # ASSOCIATIONS
   ########################################################################
-  accepts_nested_attributes_for :challenge_claims
-
-  # creatorships can't have dependent => destroy because we email the
-  # user in a before_destroy callback
-  # we do NOT use dependent => destroy here because we want to destroy chapters in REVERSE order
-  accepts_nested_attributes_for :gifts, allow_destroy: true
-
   belongs_to :language
   belongs_to :work_skin
 
@@ -63,8 +56,12 @@ class Work < ActiveRecord::Base
 
   has_one :stat_counter, dependent: :destroy
 
-  # statistics
+  accepts_nested_attributes_for :challenge_claims
 
+  # creatorships can't have dependent => destroy because we email the
+  # user in a before_destroy callback
+  # we do NOT use dependent => destroy here because we want to destroy chapters in REVERSE order
+  accepts_nested_attributes_for :gifts, allow_destroy: true
 
 
   ########################################################################
@@ -1504,5 +1501,4 @@ class Work < ActiveRecord::Base
   def title
     read_attribute(:title).try(:html_safe)
   end
-
 end
