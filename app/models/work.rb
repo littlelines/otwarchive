@@ -1430,6 +1430,10 @@ class Work < ActiveRecord::Base
     creatorships.pluck :pseud_id
   end
 
+  def user_ids
+    Pseud.where(id: pseud_ids).pluck(:id)
+  end
+
   def collection_ids
     approved_collections.pluck(:id, :parent_id).flatten.uniq.compact
   end
