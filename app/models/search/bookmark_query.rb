@@ -3,6 +3,10 @@ class BookmarkQuery < Query
     'Bookmark'
   end
 
+  def self.index_name
+    new({}).index_name
+  end
+
   def index_name
     BookmarkIndexer.index_name
   end

@@ -4,6 +4,10 @@ class WorkQuery < Query
     'Work'
   end
 
+  def self.index_name
+    new({}).index_name
+  end
+
   def index_name
     WorkIndexer.index_name
   end

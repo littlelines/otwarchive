@@ -262,6 +262,10 @@ class Work < ApplicationRecord
     Rails.cache.increment(Work.work_blurb_tag_cache_key(id))
   end
 
+  def self.index_name
+    "ao3_#{Rails.env}_works"
+  end
+
   def expire_work_tag_groups
     Rails.cache.delete(self.tag_groups_key)
   end
