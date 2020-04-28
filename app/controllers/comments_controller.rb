@@ -305,6 +305,7 @@ class CommentsController < ApplicationController
   # DELETE /comments/1
   # DELETE /comments/1.xml
   def destroy
+    authorize @comment
     parent = @comment.ultimate_parent
     parent_comment = @comment.reply_comment? ? @comment.commentable : nil
     unreviewed = @comment.unreviewed?
@@ -366,8 +367,9 @@ class CommentsController < ApplicationController
   end
 
   def reject
-   @comment.mark_as_spam!
-   redirect_to_all_comments(@comment.ultimate_parent, {show_comments: true})
+    authorize @comment 
+    @comment.mark_as_spam!
+    redirect_to_all_comments(@comment.ultimate_parent, {show_comments: true})
   end
 
   def show_comments

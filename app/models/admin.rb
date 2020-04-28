@@ -35,4 +35,8 @@ class Admin < ApplicationRecord
   def can_edit_works?
     AdminModerationPolicy.can_edit_works?(self)
   end
+
+  def can_modify_comment?
+    CommentPolicy.can_delete_comment?(self)
+  end
 end
