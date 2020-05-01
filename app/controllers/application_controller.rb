@@ -9,6 +9,11 @@ class ApplicationController < ActionController::Base
     access_denied(admin_access_denied: true)
   end
 
+  # sets admin user for pundit policies
+  def pundit_user
+    current_admin || current_user
+  end
+
   rescue_from ActionController::UnknownFormat, with: :raise_not_found
   rescue_from Elasticsearch::Transport::Transport::Errors::ServiceUnavailable do
     # Non-standard code to distinguish Elasticsearch errors from standard 503s.
