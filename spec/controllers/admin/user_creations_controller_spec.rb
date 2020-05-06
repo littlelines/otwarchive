@@ -28,41 +28,78 @@ describe Admin::UserCreationsController do
         work.reload
         expect(work.hidden_by_admin).to eq(true)
       end
+
+      it "allows admin with authorization to make user_creation visible" do
+        work.update(hidden_by_admin: true)
+        admin.update(roles: ['policy_and_abuse'])
+        fake_login_admin(admin)
+        get :hide, params: { id: work.id, creation_type: 'Work', hidden: false }
+
+        it_redirects_to_with_notice(work_path(work), "Item is no longer hidden.")
+        work.reload
+        expect(work.hidden_by_admin).to eq(false)
+      end
     end
   end
 
   describe "GET #set_spam" do
-    
+    let(:admin) { create(:admin) }
+    let(:work) { create(:work) }
+
+    context 'when admin does not have correct authorization' do
+      it "denies random admin access" do
+        admin.update(roles: [])
+        fake_login_admin(admin)
+        get :set_spam, params: { id: work.id, creation_type: 'Work', spam: true }
+        it_redirects_to_with_error(root_url, "Sorry, only an authorized admin can access the page you were trying to reach.")
+      end
+    end
+
+    context 'when admin does have correct authorization' do
+      it "allows admin with authorization to mark user_creation as spam" do
+        admin.update(roles: ['policy_and_abuse'])
+        fake_login_admin(admin)
+        get :set_spam, params: { id: work.id, creation_type: 'Work', spam: true }
+
+        it_redirects_to_with_notice(work_path(work), "Work was marked as spam and hidden.")
+        work.reload
+        expect(work.spam).to eq(true)
+      end
+
+      it "allows admin with authorization to mark user_creation as NOT spam" do
+        admin.update(roles: ['policy_and_abuse'])
+        work.update(spam: true)
+        fake_login_admin(admin)
+        get :set_spam, params: { id: work.id, creation_type: 'Work', spam: false }
+
+        it_redirects_to_with_notice(work_path(work), "Work was marked not spam and unhidden.")
+        work.reload
+        expect(work.spam).to eq(false)
+      end
+    end
   end
 
   describe "GET #destroy" do
-    
+    let(:admin) { create(:admin) }
+    let(:work) { create(:work) }
+
+    context 'when admin does not have correct authorization' do
+      it "denies random admin access" do
+        admin.update(roles: [])
+        fake_login_admin(admin)
+        get :destroy, params: { id: work.id, creation_type: 'Work' }
+        it_redirects_to_with_error(root_url, "Sorry, only an authorized admin can access the page you were trying to reach.")
+      end
+    end
+
+    context 'when admin does have correct authorization' do
+      it "allows admin with authorization to delete user_creation" do
+        admin.update(roles: ['policy_and_abuse'])
+        fake_login_admin(admin)
+        get :destroy, params: { id: work.id, creation_type: 'Work' }
+
+        it_redirects_to_with_notice(works_path, "Item was successfully deleted.")
+      end
+    end
   end
-
-  # describe "POST #create" do
-  #   before { fake_login_admin(create(:admin, roles: ["communications"])) }
-
-  #   let(:base_params) { { title: "AdminPost Title",
-  #                         content: "AdminPost content long enough to pass validation" } }
-
-  #   context "when admin post is valid" do
-  #     it "redirects to post with notice" do
-  #       post :create, params: { admin_post: base_params }
-  #       it_redirects_to_with_notice(admin_post_path(assigns[:admin_post]), "Admin Post was successfully created.")
-  #     end
-  #   end
-
-  #   context "when admin post is invalid" do
-  #     context "with invalid translated post id" do
-  #       it "renders the new template with error message" do
-  #         post :create, params: { admin_post: { translated_post_id: 0 } }.merge(base_params)
-  #         expect(response).to render_template(:new)
-  #         expect(assigns[:admin_post].errors.full_messages).to include("Translated post does not exist")
-  #       end
-  #     end
-  #   end
-  # end
-
-
-
 end
