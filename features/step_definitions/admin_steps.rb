@@ -56,18 +56,21 @@ Given /^I am logged in as an admin$/ do
   fill_in "Admin user name", with: "testadmin"
   fill_in "Admin password", with: "testadmin"
   click_button "Log in as admin"
-  step("I should see \"Successfully logged in\"")
+  step(%{I should see "Successfully logged in"})
 end
 
 Given /^I am logged in as superadmin$/ do
   step("I have an AdminSetting")
   step("I am logged out")
-  admin = Admin.find_by(login: "superadmin") || FactoryBot.create(:superadmin)
+  admin = Admin.find_by(login: "superadmin")
+  if admin.blank?
+    FactoryBot.create(:superadmin)
+  end
   visit new_admin_session_path
   fill_in "Admin user name", with: "superadmin"
   fill_in "Admin password", with: "IHaveThePower"
   click_button "Log in as admin"
-  step("I should see \"Successfully logged in\"")
+  step(%{I should see "Successfully logged in"})
 end
 
 Given /^I am logged out as an admin$/ do
@@ -98,16 +101,16 @@ end
 Given /^tag wrangling is off$/ do
   step("I am logged in as superadmin")
   visit(admin_settings_path)
-  step("I check \"Turn off tag wrangling for non-admins\"")
-  step("I press \"Update\"")
+  step(%{I check "Turn off tag wrangling for non-admins"})
+  step(%{I press "Update"})  
   step("I am logged out as an admin")
 end
 
 Given /^tag wrangling is on$/ do
   step("I am logged in as superadmin")
   visit(admin_settings_path)
-  step("I uncheck \"Turn off tag wrangling for non-admins\"")
-  step("I press \"Update\"")
+  step(%{I uncheck "Turn off tag wrangling for non-admins"})
+  step(%{I press "Update"})
   step("I am logged out as an admin")
 end
 
@@ -142,7 +145,7 @@ Given /^I have posted known issues$/ do
 end
 
 Given /^I have posted an admin post$/ do
-  step("I am logged in as admin with role \"communications\"")
+  step(%{I am logged in as admin with role "communications"})
   step("I make an admin post")
   step("I am logged out as an admin")
 end
@@ -182,13 +185,13 @@ Then /^the user "([^\"]*)" should be permanently banned$/ do |user|
 end
 
 Given /^I have posted an admin post without paragraphs$/ do
-  step("I am logged in as admin with role \"communications\"")
+  step(%{I am logged in as admin with role "communications"})
   step("I make an admin post without paragraphs")
   step("I am logged out as an admin")
 end
 
 Given /^I have posted an admin post with tags$/ do
-  step("I am logged in as admin with role \"communications\"")
+  step(%{I am logged in as admin with role "communications"})
   visit new_admin_post_path
   fill_in("admin_post_title", with: "Default Admin Post")
   fill_in("content", with: "Content of the admin post.")
