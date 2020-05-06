@@ -1,6 +1,6 @@
 class Admin < ApplicationRecord
   include ActiveModel::ForbiddenAttributesProtection
-  VALID_ROLES = %w(superadmin communications translation tag_wrangling docs support policy_and_abuse open_doors)
+  VALID_ROLES = %w(superadmin communications translation tag_wrangling docs support policy_and_abuse open_doors).freeze
 
   serialize :roles, Array
 
@@ -24,16 +24,6 @@ class Admin < ApplicationRecord
     if roles && (roles - VALID_ROLES).present?
       errors.add(:roles, :invalid)
     end
-  end
-
-  ### PERMISSIONS ###
-
-  def admin_post_access?
-    AdminPostPolicy.can_post?(self)
-  end
-
-  def can_edit_works?
-    AdminModerationPolicy.can_edit_works?(self)
   end
 
   def can_modify_comment?
