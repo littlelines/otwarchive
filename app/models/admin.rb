@@ -25,8 +25,4 @@ class Admin < ApplicationRecord
       errors.add(:roles, :invalid)
     end
   end
-
-  def can_modify_comment?
-    CommentPolicy.can_delete_comment?(self)
-  end
 end
