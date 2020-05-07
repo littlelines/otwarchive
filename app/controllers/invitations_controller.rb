@@ -18,10 +18,14 @@ class InvitationsController < ApplicationController
   end
 
   def index
+    authorize User, policy_class: UserPolicy
+
     @unsent_invitations = @user.invitations.unsent.limit(5)
   end
 
   def manage
+    authorize User, policy_class: UserPolicy
+
     status = params[:status]
     @invitations = @user.invitations
     if %w(unsent unredeemed redeemed).include?(status)
