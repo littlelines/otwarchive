@@ -10,23 +10,6 @@ class UserPolicy < ApplicationPolicy
     user_has_roles?(USER_SEARCH_ROLES)
   end
 
-  def permitted_user_params
-    if user_has_roles?(USER_ACTION_ROLES)
-      %w(roles email)
-    else
-      %w(roles)
-    end
-  end
-
-  def permitted_management_params
-    params = %w(user_login next_of_kin_name next_of_kin_email admin_note)
-    if user_has_roles?(USER_ACTION_ROLES)
-      params + %w(admin_action suspend_days)
-    else
-      params
-    end
-  end
-
   alias_method :index?, :can_search_users?
   alias_method :manage?, :can_search_users?
   alias_method :send_activation?, :can_search_users?
