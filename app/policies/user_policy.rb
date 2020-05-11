@@ -20,4 +20,5 @@ class UserPolicy < ApplicationPolicy
   alias_method :update?, :can_search_users?
   alias_method :update_status?, :can_search_users?
   alias_method :confirm_delete_user_creations?, :can_suspend_users?
+  alias_method :destroy_user_creations?, :can_suspend_users?
 end
