@@ -155,8 +155,6 @@ class Admin::AdminUsersController < Admin::BaseController
   end
 
   def user_management_params
-    params.require(:user).permit(
-      :admin_action, :suspend_days, :user_login, :next_of_kin_name, :next_of_kin_email, :admin_note
-    )
+    params.permit(:admin_action, :suspend_days, :user_login, :next_of_kin_name, :next_of_kin_email, :admin_note)
   end
 end
