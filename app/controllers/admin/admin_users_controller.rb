@@ -69,7 +69,7 @@ class Admin::AdminUsersController < Admin::BaseController
   def update_status
     @user = User.find_by(login: params[:user_login])
     authorize @user, policy_class: UserPolicy
-    @user_manager = UserManager.new(current_admin, user_management_params)
+    @user_manager = UserManager.new(current_admin, params)
     if @user_manager.save
       flash[:notice] = @user_manager.success_message
       if params[:admin_action] == "spamban"
@@ -151,10 +151,10 @@ class Admin::AdminUsersController < Admin::BaseController
   end
 
   def user_params
-    params.require(:user).permit(roles: [])
+    params.require(:user).permit(:email, roles: [])
   end
 
-  def user_management_params
-    params.permit(:admin_action, :suspend_days, :user_login, :next_of_kin_name, :next_of_kin_email, :admin_note)
-  end
+  # def user_management_params
+  #   params.permit(:admin_action, :suspend_days, :user_login, :next_of_kin_name, :next_of_kin_email, :admin_note)
+  # end
 end

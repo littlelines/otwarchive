@@ -14,18 +14,14 @@ class InvitationsController < ApplicationController
 
   def check_permission
     @user = User.find_by(login: params[:user_id])
-    access_denied unless logged_in_as_admin? || @user.present? && @user == current_user
+    access_denied unless (logged_in_as_admin? && UserPolicy.can_search_users?(current_admin)) || @user.present? && @user == current_user
   end
 
   def index
-    authorize User, policy_class: UserPolicy
-
     @unsent_invitations = @user.invitations.unsent.limit(5)
   end
 
   def manage
-    authorize User, policy_class: UserPolicy
-
     status = params[:status]
     @invitations = @user.invitations
     if %w(unsent unredeemed redeemed).include?(status)

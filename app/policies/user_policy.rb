@@ -10,8 +10,11 @@ class UserPolicy < ApplicationPolicy
     user_has_roles?(USER_SEARCH_ROLES)
   end
 
+  def self.can_search_users?(admin)
+    self.new(admin, nil).can_search_users?
+  end
+
   alias_method :index?, :can_search_users?
-  alias_method :manage?, :can_search_users?
   alias_method :send_activation?, :can_search_users?
   alias_method :troubleshoot?, :can_search_users?
   alias_method :activate?, :can_search_users?
