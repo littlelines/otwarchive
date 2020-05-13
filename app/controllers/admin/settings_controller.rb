@@ -1,5 +1,4 @@
 class Admin::SettingsController < Admin::BaseController
-
   def index
     @admin_setting = AdminSetting.first || AdminSetting.create(last_updated_by: Admin.first)
     authorize @admin_setting
@@ -19,6 +18,7 @@ class Admin::SettingsController < Admin::BaseController
   end
 
   private
+
   def admin_setting_params
     params.require(:admin_setting).permit(
       policy(@admin_setting).permitted_attributes
