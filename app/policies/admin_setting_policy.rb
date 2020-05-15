@@ -20,7 +20,7 @@ class AdminSettingPolicy < ApplicationPolicy
   def permitted_attributes
     permitted = []
     if user.roles.include?('superadmin')
-      permitted = permitted + [
+      permitted = [
         :account_creation_enabled, :invite_from_queue_enabled, :invite_from_queue_number,
         :invite_from_queue_frequency, :days_to_purge_unactivated,
         :invite_from_queue_at, :suspend_filter_counts, :suspend_filter_counts_at,
@@ -28,15 +28,25 @@ class AdminSettingPolicy < ApplicationPolicy
         :request_invite_enabled, :creation_requires_invite, :downloads_enabled,
         :hide_spam, :disable_support_form, :disabled_support_form_text
       ]
-    elsif user.roles.include?('tag_wrangling')
-      permitted = permitted + [:tag_wrangling_off]
-    elsif user.roles.include?('support')
-      permitted = permitted + [:disable_support_form]
-    elsif user.roles.include?('policy_and_abuse')
-      permitted = permitted + [:hide_spam]
+    else
+      permitted = permitted + [:tag_wrangling_off] if user.roles.include?('tag_wrangling')
+      permitted = permitted + [:disable_support_form, :disabled_support_form_text] if user.roles.include?('support')
+      permitted = permitted + [:hide_spam] if user.roles.include?('policy_and_abuse')
     end
 
     permitted
+  end
+
+  def verify_permitted_params(setting_params)
+    setting_params = setting_params.keys.map(&:to_sym) - [:last_updated_by]
+    unauthorized_params = setting_params - permitted_attributes
+
+    if unauthorized_params.any?
+      extra_params = unauthorized_params.map{ |p| p.to_s.humanize }.join(", ")
+      "You are not permitted to change the following settings: #{extra_params}"
+    else
+      true
+    end
   end
 
   alias_method :index?, :can_update_settings?
