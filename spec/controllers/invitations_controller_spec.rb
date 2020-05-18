@@ -77,9 +77,20 @@ describe InvitationsController do
     end
   end
 
-  describe "GET #create" do
+  describe "POST #create" do
+    let(:invitee) { create(:user) }
+
+    it "does not allow non-admins to create" do
+      fake_login
+      post :create, params: { user_id: invitee.login, invitation: { invitee_email: invitee.email, number_of_invites: 1 }}
+
+      it_redirects_to_with_error(
+        user_path(@current_user),
+        "Sorry, you don't have permission to access the page you were trying to reach."
+      )
+    end
+
     it "creates invitations" do
-      invitee = create(:user)
       admin.update(roles: ['policy_and_abuse'])
       fake_login_admin(admin)
 
@@ -88,7 +99,7 @@ describe InvitationsController do
     end
   end
 
-  describe "GET #update" do
+  describe "PUT #update" do
     it "updates and resends invitations" do
       invitee = create(:user)
       invitation = create(:invitation)
@@ -103,7 +114,18 @@ describe InvitationsController do
     end
   end
 
-  describe "GET #destroy" do
+  describe "DELETE #destroy" do
+    it "does not allow non-admins to destroy" do
+      invitation = create(:invitation)
+      fake_login
+      post :destroy, params: { id: invitation.id }
+
+      it_redirects_to_with_error(
+        user_path(@current_user),
+        "Sorry, you don't have permission to access the page you were trying to reach."
+      )
+    end
+
     it "deletes invitations" do
       invitation = create(:invitation)
       admin.update(roles: ['policy_and_abuse'])
