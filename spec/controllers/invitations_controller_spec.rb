@@ -76,4 +76,41 @@ describe InvitationsController do
       it_redirects_to_with_notice(invitation_path(invitation), "Invitation was successfully sent.")
     end
   end
+
+  describe "GET #create" do
+    it "creates invitations" do
+      invitee = create(:user)
+      admin.update(roles: ['policy_and_abuse'])
+      fake_login_admin(admin)
+
+      post :create, params: { user_id: invitee.login, invitation: { invitee_email: invitee.email, number_of_invites: 1 }}
+      it_redirects_to_with_notice(user_invitations_path(invitee), "Invitations were successfully created.")
+    end
+  end
+
+  describe "GET #update" do
+    it "updates and resends invitations" do
+      invitee = create(:user)
+      invitation = create(:invitation)
+      admin.update(roles: ['policy_and_abuse'])
+      fake_login_admin(admin)
+
+      put :update, params: { id: invitation.id, invitation: { invitee_email: invitee.email }}
+      it_redirects_to_with_notice(
+        find_admin_invitations_path("invitation[token]" => invitation.token),
+        'Invitation was successfully sent.'
+      )
+    end
+  end
+
+  describe "GET #destroy" do
+    it "deletes invitations" do
+      invitation = create(:invitation)
+      admin.update(roles: ['policy_and_abuse'])
+      fake_login_admin(admin)
+
+      post :destroy, params: { id: invitation.id }
+      it_redirects_to_with_notice(admin_invitations_path, "Invitation successfully destroyed")
+    end
+  end
 end
