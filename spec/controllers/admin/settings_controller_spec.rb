@@ -89,9 +89,9 @@ describe Admin::SettingsController do
             } 
           }
 
-          it_redirects_to_with_error(
-            admin_settings_path,
-            "You are not permitted to change the following settings: Suspend filter counts, Enable test caching, Cache expiration, Tag wrangling off, Downloads enabled"
+          expect(response).to render_template('index')
+          expect(flash[:error]).to(
+            include("You are not permitted to change the following settings: Suspend filter counts, Enable test caching, Cache expiration, Tag wrangling off, Downloads enabled")
           )
         end
 
@@ -122,9 +122,9 @@ describe Admin::SettingsController do
             } 
           }
 
-          it_redirects_to_with_error(
-            admin_settings_path,
-            "You are not permitted to change the following settings: Enable test caching, Tag wrangling off, Downloads enabled, Hide spam"
+          expect(response).to render_template('index')
+          expect(flash[:error]).to(
+            include("You are not permitted to change the following settings: Enable test caching, Tag wrangling off, Downloads enabled, Hide spam")
           )
         end
 
@@ -161,9 +161,9 @@ describe Admin::SettingsController do
             } 
           }
 
-          it_redirects_to_with_error(
-            admin_settings_path,
-            "You are not permitted to change the following settings: Enable test caching, Downloads enabled, Hide spam, Disable support form, Disabled support form text"
+          expect(response).to render_template('index')
+          expect(flash[:error]).to(
+            include("You are not permitted to change the following settings: Enable test caching, Downloads enabled, Hide spam, Disable support form, Disabled support form text")
           )
         end
 
