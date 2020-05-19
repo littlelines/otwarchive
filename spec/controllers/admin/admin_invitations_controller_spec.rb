@@ -93,20 +93,30 @@ describe Admin::AdminInvitationsController do
       it_redirects_to_with_notice(root_path, "I'm sorry, only an admin can look at that area")
     end
 
-    # it "allows admins to invite by user_name" do
-    #   email = 'test_email@example.com'
-    #   fake_login_admin(admin)
-    #   get :find, params: { invitation: { user_name: user.login }}
+    it "allows admins to invite by user_name" do
+      user.update(invitations: [invitation])
+      fake_login_admin(admin)
+      get :find, params: { invitation: { user_name: user.login }}
 
-    #   # it_redirects_to_with_notice(admin_invitations_path, "Invitations successfully created.")
-    # end
+      expect(response).to render_template("find")
+      expect(assigns(:invitations)).to include(invitation)
+    end
 
-    # it "allows admins to invite by token" do
-    #   email = 'test_email@example.com'
-    #   fake_login_admin(admin)
-    #   get :find, params: { invitation: { token: invitation.token }}
+    it "allows admins to invite by token" do
+      fake_login_admin(admin)
+      get :find, params: { invitation: { token: invitation.token }}
 
-    #   # it_redirects_to_with_notice(admin_invitations_path, "Invitations successfully created.")
-    # end
+      expect(response).to render_template("find")
+      expect(assigns(:invitation)).to eq(invitation)
+    end
+
+    it "allows admins to invite by invitee_email" do
+      invitation.update(invitee_email: user.email)
+      fake_login_admin(admin)
+      get :find, params: { invitation: { invitee_email: user.email }}
+
+      expect(response).to render_template("find")
+      expect(assigns(:invitation)).to eq(invitation)
+    end
   end
 end
